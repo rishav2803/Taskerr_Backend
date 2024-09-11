@@ -6,7 +6,7 @@ import { AppService } from './app.service';
 import { UserModule } from './users/users.module';
 import { TasksModule } from './tasks/tasks.module';
 import { SubTaskModule } from './subtasks/subtasks.module';
-
+import { CollaborationModule } from './collaboration/collaboration.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,7 +22,8 @@ import { SubTaskModule } from './subtasks/subtasks.module';
     }),
     UserModule,
     TasksModule,
-    SubTaskModule
+    SubTaskModule,
+    CollaborationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

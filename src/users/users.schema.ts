@@ -21,6 +21,9 @@ export class User {
   @Prop({ required: true })
   name: string;
 
+  @Prop({ default: false })
+  isActivated: boolean;
+
   @Prop({ default: Date.now })
   createdAt: Date;
 

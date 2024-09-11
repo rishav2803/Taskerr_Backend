@@ -6,12 +6,19 @@ import { RegisterUserDto } from "./dto/RegisterUser.dto";
 import { LoginUserDto } from "./dto/LoginUser.dto";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from 'bcrypt';
+import { Token } from "src/schemas/tokens.schema";
+import { MailerService } from "src/mailer/mailer.service";
+import { GenerateLink } from "src/utils/generateLink.helper";
+import emailVerificationTemplate from "src/mailer/templates/EmailVerification.template";
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    private jwtService: JwtService
+    @InjectModel(Token.name) private tokenModel: Model<Token>,
+    private jwtService: JwtService,
+    private readonly mailerService: MailerService,
+    private readonly generateLinkService: GenerateLink,
   ) { }
 
   async registerUser(registerUserDto: RegisterUserDto): Promise<UserDocument> {
@@ -23,12 +30,40 @@ export class UserService {
     console.log("existing user", existingUser);
 
     const newUser = new this.userModel({
-      registerUserDto
+      ...registerUserDto
     });
 
+
+    console.log(newUser)
+
+    const payload = { username: newUser.name, email: newUser.email };
+
+    const verificationToken = await this.jwtService.signAsync(payload, { expiresIn: "1h" });
+
+    const link = this.generateLinkService.generateLink(verificationToken);
+
+
     try {
-      return await newUser.save();
+      await this.mailerService.sendMail(
+        registerUserDto.email,
+        'Registration Confirmation',
+        'Please confirm your registration.',
+        emailVerificationTemplate(link)
+      );
+
+      const user = await newUser.save()
+
+      const newToken = new this.tokenModel({
+        userId: user._id,
+        token: verificationToken,
+        type: "verification"
+      })
+
+      await newToken.save();
+
+      return user;
     } catch (error) {
+      console.log(error);
       throw new BadRequestException('Error registering user');
     }
 

@@ -5,10 +5,16 @@ import { User, UserSchema } from './users.schema';
 import { UserService } from './users.service';
 import { UsersController } from './users.controller';
 import { JwtModule } from '@nestjs/jwt';
+import { Token, TokenSchema } from 'src/schemas/tokens.schema';
+import { GenerateLink } from 'src/utils/generateLink.helper';
+import { MailerService } from 'src/mailer/mailer.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Token.name, schema: TokenSchema }
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -18,7 +24,7 @@ import { JwtModule } from '@nestjs/jwt';
       global: true
     }),
   ],
-  providers: [UserService],
+  providers: [UserService, GenerateLink, MailerService],
   controllers: [UsersController]
 })
 export class UserModule { }
