@@ -1,4 +1,4 @@
-import { IsBoolean, IsMongoId, IsOptional, ValidateNested, ArrayMinSize } from 'class-validator';
+import { IsBoolean, IsMongoId, IsOptional, ValidateNested, ArrayMinSize, IsEmail } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PermissionsDto {
@@ -28,9 +28,11 @@ export class ShareCollabInviteDto {
   @IsMongoId()
   user_id: string;
 
+  @IsEmail()
+  email: string
+
   @ValidateNested({ each: true })
-  @Type(() => CollaboratorDto)
-  @ArrayMinSize(1)
-  collaborators: CollaboratorDto[];
+  @Type(() => PermissionsDto)
+  permissions: PermissionsDto;
 }
 

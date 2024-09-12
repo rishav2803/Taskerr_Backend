@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Res } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query, Res } from "@nestjs/common";
 import { UserService } from "./users.service";
 import { RegisterUserDto } from "./dto/RegisterUser.dto";
 import { ResponseHelper } from "src/utils/response.helper";
@@ -34,6 +34,17 @@ export class UsersController {
         message: "User Logged In successfully",
         ...data,
       });
+    } catch (error) {
+      return ResponseHelper.error(res, error);
+    }
+  }
+
+
+  @Get("/api/activate-account")
+  async activateAccount(@Query('token') token: string, @Res() res: Response) {
+    try {
+      const user = await this.usersService.activateAccount(token);
+      return res.redirect('http://localhost:5173/login')
     } catch (error) {
       return ResponseHelper.error(res, error);
     }

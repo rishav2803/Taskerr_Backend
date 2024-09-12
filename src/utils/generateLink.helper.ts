@@ -5,9 +5,10 @@ import { ConfigService } from '@nestjs/config';
 export class GenerateLink {
   constructor(private configService: ConfigService) { }
 
-  generateLink(token: string): string {
-    const baseUrl = this.configService.get<string>('BASE_URL');
-    return `${baseUrl}/verify?token=${token}`;
+  generateLink(token: string, type: string): string {
+    const baseUrl = this.configService.get<string>('BACKEND_BASE_URL');
+    return `${baseUrl}${type}?token=${token}`;
   }
+
 }
 

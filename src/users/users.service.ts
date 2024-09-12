@@ -10,6 +10,7 @@ import { Token } from "src/schemas/tokens.schema";
 import { MailerService } from "src/mailer/mailer.service";
 import { GenerateLink } from "src/utils/generateLink.helper";
 import emailVerificationTemplate from "src/mailer/templates/EmailVerification.template";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class UserService {
@@ -17,9 +18,53 @@ export class UserService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Token.name) private tokenModel: Model<Token>,
     private jwtService: JwtService,
+    private configService: ConfigService,
     private readonly mailerService: MailerService,
     private readonly generateLinkService: GenerateLink,
   ) { }
+
+
+  async activateAccount(token: string): Promise<UserDocument | null> {
+
+    try {
+      const tokenDoc = await this.tokenModel.findOne({ token }).exec();
+
+      if (!tokenDoc) {
+        throw new UnauthorizedException('Invalid or expired activation link.');
+      }
+
+      const decodedToken = await this.jwtService.verifyAsync(
+        token,
+        {
+          secret: this.configService.get<string>("ACCESS_SECRET_TOKEN"),
+        }
+
+      );
+      if (!decodedToken || !decodedToken.email) {
+        throw new BadRequestException('Invalid activation token payload.');
+      }
+
+      const user = await this.userModel.findOne({ email: decodedToken.email }).exec();
+      if (!user) {
+        throw new NotFoundException('User not found.');
+      }
+
+      if (user.isActivated) {
+        throw new BadRequestException('User is already activated.');
+      }
+
+      user.isActivated = true;
+
+      await user.save();
+
+      await this.tokenModel.deleteOne({ _id: tokenDoc._id }).exec();
+
+      return user;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired activation link.');
+    }
+
+  }
 
   async registerUser(registerUserDto: RegisterUserDto): Promise<UserDocument> {
     console.log(registerUserDto);
@@ -34,17 +79,16 @@ export class UserService {
     });
 
 
-    console.log(newUser)
 
     const payload = { username: newUser.name, email: newUser.email };
 
     const verificationToken = await this.jwtService.signAsync(payload, { expiresIn: "1h" });
 
-    const link = this.generateLinkService.generateLink(verificationToken);
+    const link = this.generateLinkService.generateLink(verificationToken, "activate-account");
 
 
     try {
-      await this.mailerService.sendMail(
+      await this.mailerService.scheduleEmail(
         registerUserDto.email,
         'Registration Confirmation',
         'Please confirm your registration.',
